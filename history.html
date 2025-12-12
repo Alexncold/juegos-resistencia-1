@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Reservas</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_back_ios_new" />
+    <style>
+        /* Estilos para el botón de volver */
+        #backToHome {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            transition: all 0.2s;
+        }
+
+        /* Versión móvil - solo ícono */
+        @media (max-width: 767px) {
+            #backToHome {
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            #backToHome .back-icon {
+                margin: 0;
+            }
+            
+            #backToHome .back-text {
+                display: none;
+            }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-confirmed {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container flex justify-between items-center">
+            <h1 class="font-bold text-xl" style="font-size: 1.5rem;">Historial de reservas</h1>
+            <button id="backToHome" class="btn btn-outline">
+                <span class="material-symbols-outlined back-icon" style="font-size: 18px;">arrow_back_ios_new</span>
+                <span class="back-text">Volver al Inicio</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 2rem; padding-bottom: 2rem;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title text-sm">Tus reservas</h2>
+                <p class="text-sm text-muted">Acá podés ver todas las reservas hechas con tu usuario.</p>
+            </div>
+            <div class="card-content table-container">
+                <table id="userHistoryTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Personas</th>
+                            <th>Juego</th>
+                            <th>Total</th>
+                            <th>Estado de pago</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userHistoryBody">
+                        <!-- JS injected -->
+                    </tbody>
+                </table>
+                <p id="historyEmpty" class="text-sm text-muted" style="margin-top: 1rem; display: none;">
+                    Todavía no tenés reservas registradas.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/history.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Reservas</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        /* Estilos para el menú hamburguesa */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            left: auto;
+            z-index: 900; /* Reducido de 1000 a 900 para que esté detrás del menú */
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: z-index 0.3s ease;
+        }
+        
+        /* Ocultar el botón cuando el menú está abierto */
+        .mobile-menu-open .mobile-menu-btn {
+            z-index: 800; /* Asegurarse de que esté detrás del menú */
+        }
+        
+        .mobile-menu-btn .material-symbols-outlined {
+            font-size: 28px;
+            color: #1B203D;
+        }
+
+        .mobile-menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .mobile-menu-open .mobile-menu-overlay {
+            display: block;
+        }
+
+        /* Estilos para la barra lateral en móvil */
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .admin-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: -300px;
+                width: 280px;
+                height: 100vh;
+                z-index: 999;
+                transition: right 0.3s ease;
+                overflow-y: auto;
+                padding-top: 5rem;
+                box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .mobile-menu-open .sidebar {
+                right: 0;
+            }
+
+            .admin-content {
+                padding: 5rem 1rem 2rem;
+            }
+            
+            /* Ajustes para los campos de fecha en móvil */
+            .card-header .flex.gap-2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem 1rem;
+                width: 100%;
+                padding-bottom: 0.5rem;
+            }
+            
+            .card-header .flex.gap-2 .input[type="date"] {
+                width: 100%;
+                min-width: 0;
+            }
+            
+            .card-header .flex.gap-2 label[for^="searchDate"] {
+                white-space: nowrap;
+                grid-row: 1;
+                margin-bottom: 0.25rem;
+            }
+            
+            .card-header .flex.gap-2 input[type="date"] {
+                grid-row: 2;
+            }
+            
+            /* Estilos para el selector de estado */
+            .card-header .flex.gap-2 label[for="searchStatus"],
+            .card-header .flex.gap-2 #searchStatus {
+                grid-column: 1 / -1;
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+            
+            .card-header .flex.gap-2 label[for="searchStatus"] {
+                grid-row: 3;
+                margin-bottom: 0;
+            }
+            
+            .card-header .flex.gap-2 #searchStatus {
+                grid-row: 4;
+            }
+            
+            /* Asegurar que el contenedor principal siga siendo responsivo */
+            .card-header > .flex.flex-wrap {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            /* Estilo para el botón limpiar */
+            #clearReservationFiltersBtn {
+                margin-left: 0 !important;
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+                justify-content: center;
+                width: 100%;
+                grid-column: 1 / -1;
+                grid-row: 5;
+                padding-top: 0.5rem;
+                padding-bottom: 0.5rem;
+            }
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+            .admin-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sidebar {
+            background-color: #F6F7F9;
+            padding: 2rem 1rem;
+            border-right: 1px solid var(--border);
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            color: var(--muted-foreground);
+            font-weight: 500;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .nav-item:hover {
+            background-color: var(--accent);
+            color: var(--foreground);
+        }
+
+        .nav-item.active {
+            background-color: #EDEDF1;
+            color: var(--foreground);
+            border: 1px solid #D6D8E1;
+            border-radius: 6px;
+        }
+        
+        .nav-item.active .material-symbols-outlined {
+            color: #6A718D;
+        }
+        
+        .nav-item.active span:not(.material-symbols-outlined) {
+            font-weight: 600;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background-color: var(--border);
+            margin: 1rem 0;
+            width: 100%;
+        }
+
+        .admin-content {
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th,
+        td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--muted-foreground);
+        }
+
+        tbody tr:hover {
+            background-color: var(--muted);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-confirmed {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        /* Estilos para los botones de acción en desktop */
+        .card-header .flex-wrap > .btn {
+            margin-left: 12px;
+            height: 36px; /* Altura estándar para los botones */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Asegurar que el botón de eliminar tenga el mismo tamaño que el de limpiar */
+        #deleteSelectedReservationsBtn {
+            min-width: 100px; /* Ancho mínimo para mantener consistencia */
+        }
+        
+        @media (max-width: 768px) {
+            /* Estilos para móviles */
+            .card-header .flex-wrap > .btn {
+                margin-left: 0;
+                width: 100%;
+                margin-top: 8px;
+                height: 40px; /* Altura un poco mayor para mejor usabilidad táctil */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Botón del menú hamburguesa -->
+    <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menú">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
+    
+    <!-- Overlay del menú móvil -->
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+    
+    <div class="admin-layout">
+        <aside id="sidebar" class="sidebar">
+            <div class="flex items-center gap-2 mb-8 px-2">
+                <div class="avatar" style="width: 32px; height: 32px;">A</div>
+                <span class="font-bold">Admin Panel</span>
+            </div>
+
+            <nav>
+                <div class="nav-item active" data-tab="reservations">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">event</span>
+                    <span>Reservas</span>
+                </div>
+                <div class="nav-item" data-tab="calendar">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">edit_calendar</span>
+                    <span>Calendario</span>
+                </div>
+                <div class="nav-item" data-tab="times">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">nest_clock_farsight_analog</span>
+                    <span>Horarios</span>
+                </div>
+                <div class="nav-item" data-tab="price">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">attach_money</span>
+                    <span>Precio</span>
+                </div>
+                <div class="nav-item" data-tab="news">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">newsmode</span>
+                    <span>Novedades</span>
+                </div>
+                <div class="nav-item" data-tab="free-tables">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">card_membership</span>
+                    <span>Día de Club</span>
+                </div>
+                
+                <div class="nav-item" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; margin-bottom: 1rem;"></div>
+                <div class="nav-item" id="logoutBtn">
+                    <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.5rem;">logout</span>
+                    <span>Cerrar Sesión</span>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="admin-content">
+
+            <!-- Reservations Tab -->
+            <div id="reservations" class="tab-content active">
+                <h2 class="text-xl font-bold mb-4">Gestión de Reservas</h2>
+                <div class="card reservations-card">
+                    <div class="card-header flex flex-col gap-6">
+                        <input type="text" id="searchReservations" class="input"
+                            placeholder="Buscar por nombre o juego..." style="min-width: 200px;">
+                        <div class="flex gap-3 items-center flex-wrap">
+                            <div class="flex gap-2 items-center">
+                                <label for="searchDateStart" class="text-sm font-bold">Desde:</label>
+                                <input type="date" id="searchDateStart" class="input" style="width: auto;"
+                                    title="Fecha Inicio">
+                                <label for="searchDateEnd" class="text-sm font-bold">Hasta:</label>
+                                <input type="date" id="searchDateEnd" class="input" style="width: auto;"
+                                    title="Fecha Fin">
+                                <label for="searchStatus" class="text-sm font-bold">Estado:</label>
+                                <select id="searchStatus" class="input" style="width: auto;">
+                                    <option value="">Todos los estados</option>
+                                    <option value="pending">Pendiente de pago</option>
+                                    <option value="confirmed">Confirmada</option>
+                                    <option value="rejected">Rechazada</option>
+                                </select>
+                            </div>
+                            <button id="clearReservationFiltersBtn" class="btn btn-outline"
+                                style="display: flex; align-items: center; gap: 4px; background-color: #F6F7F9;"
+                                data-mobile-padding="true">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">close_small</span>
+                                <span>Limpiar</span>
+                            </button>
+                            <button id="deleteSelectedReservationsBtn" class="btn btn-delete-red" 
+                                style="display: flex; align-items: center; gap: 4px;"
+                                data-mobile-padding="true"
+                                disabled>
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                                <span>Eliminar</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content reservations-card-content">
+                        <div class="table-container">
+                            <table id="reservationsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;">
+                                            <input type="checkbox" id="selectAllReservations" style="width: 16px; height: 16px; cursor: pointer;">
+                                        </th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Teléfono</th>
+                                        <th>Juego</th>
+                                        <th>Personas</th>
+                                        <th>Ocupación</th>
+                                        <th>Estado</th>
+                                        <th>Monto total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reservationsTableBody">
+                                    <!-- JS Injected -->
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="9" style="text-align: left; font-weight: 600; padding: 12px 16px; background-color: #F6F7F9; border-top: 1px solid #e0e0e0;">Total recaudado:</td>
+                                        <td id="reservationsTotalAmount" style="font-weight: 700; padding: 12px 16px; background-color: #F6F7F9; border-top: 1px solid #e0e0e0;">$0</td>
+                                        <td style="background-color: #F6F7F9; border-top: 1px solid #e0e0e0;"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div class="pagination-container">
+                                <div class="pagination">
+                                    <button id="prevPageBtn" class="pagination-btn" aria-label="Página anterior">
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                    </button>
+                                    <span id="currentPageDisplay" class="pagination-page" style="background-color: #EDEDF1 !important; border-color: #D6D8E1 !important; color: var(--foreground) !important; font-weight: 600;">1</span>
+                                    <button id="nextPageBtn" class="pagination-btn" aria-label="Página siguiente">
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                </div>
+                                <div class="items-per-page">
+                                    <span class="text-sm text-gray-600">Mostrar:</span>
+                                    <select id="itemsPerPageSelect" class="pagination-select">
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Slots Tab -->
+            <div id="times" class="tab-content">
+                <h2 class="text-xl font-bold mb-4">Gestión de Horarios</h2>
+                <div class="time-slots-container">
+                    <!-- Form -->
+                    <div class="time-slots-form">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title text-sm">Nuevo Horario</h3>
+                            </div>
+                            <div class="card-content flex flex-col gap-4">
+                                <input type="text" id="timeSlotLabel" class="input" placeholder="Ej: 17:00 - 19:00">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" id="timeSlotActive" checked>
+                                    <span>Activo</span>
+                                </label>
+                                <button id="addTimeSlotBtn" class="btn btn-primary">Agregar horario</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- List -->
+                    <div id="adminTimeSlotsList" class="time-slots-list">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+                
+                <style>
+                    .time-slots-container {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 2rem;
+                    }
+                    
+                    .time-slots-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+                    
+                    .time-slots-list .card {
+                        margin-bottom: 0;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .time-slots-container {
+                            grid-template-columns: 1fr;
+                        }
+                        
+                        .time-slots-form {
+                            order: 1;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .time-slots-list {
+                            order: 2;
+                        }
+                    }
+                </style>
+            </div>
+
+            <!-- Calendar Tab -->
+            <div id="calendar" class="tab-content">
+                <h2 class="text-xl font-bold mb-4">Gestión de Calendario</h2>
+                <div class="calendar-container">
+                    <!-- Calendar Grid -->
+                    <div class="calendar-grid-container">
+                        <div class="card admin-calendar-card">
+                            <div class="card-header">
+                                <p class="text-sm text-muted">Seleccioná un día para gestionarlo.</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="flex justify-between items-center mb-4">
+                                    <button id="adminPrevMonth" class="btn btn-outline">&lt;</button>
+                                    <span id="adminMonthDisplay" class="font-bold">Noviembre 2025</span>
+                                    <button id="adminNextMonth" class="btn btn-outline">&gt;</button>
+                                </div>
+                                <div class="calendar-header">
+                                    <div>Dom</div>
+                                    <div>Lun</div>
+                                    <div>Mar</div>
+                                    <div>Mié</div>
+                                    <div>Jue</div>
+                                    <div>Vie</div>
+                                    <div>Sáb</div>
+                                </div>
+                                <div id="adminCalendarGrid" class="calendar-grid">
+                                    <!-- JS Generated -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Management Panel -->
+                    <div class="calendar-management-panel">
+                        <div id="dateManagementPanel" class="card" style="opacity: 0.5; pointer-events: none;">
+                            <div class="card-header">
+                                <h3 class="font-bold">Gestionar Fecha</h3>
+                            </div>
+                            <div class="card-content flex flex-col gap-4">
+                                <p id="selectedDateDisplay" class="text-sm text-muted mb-2">Seleccioná una fecha...</p>
+
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-sm font-bold">Bloquear Fecha</label>
+                                    <button id="toggleBlockBtn" class="btn btn-outline w-full">Bloquear /
+                                        Desbloquear</button>
+                                </div>
+
+                                <div class="flex flex-col gap-2 border-t pt-4 mt-2">
+                                    <label class="text-sm font-bold">Fecha Especial</label>
+                                    <input type="text" id="specialDateName" class="input"
+                                        placeholder="Nombre (ej. Navidad)">
+                                    <div class="special-date-actions flex gap-2">
+                                        <button id="saveSpecialDateBtn" class="btn btn-primary flex-1">Guardar</button>
+                                        <button id="deleteSpecialDateBtn" class="btn btn-destructive flex-1">Borrar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <style>
+                    .calendar-container {
+                        display: flex;
+                        gap: 2rem;
+                        flex-wrap: wrap;
+                    }
+                    
+                    .calendar-grid-container {
+                        flex: 0 0 400px; /* Ancho fijo para desktop */
+                        min-width: 300px;
+                        max-width: 100%;
+                    }
+                    
+                    .calendar-management-panel {
+                        flex: 0 0 350px; /* Ancho fijo para desktop */
+                        min-width: 300px;
+                        max-width: 100%;
+                    }
+                    
+                    .special-date-actions {
+                        margin-top: 0.75rem; /* 12px de margen superior */
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .calendar-container {
+                            flex-direction: column;
+                            align-items: stretch;
+                            width: 100%;
+                            max-width: 100%;
+                            padding: 0; /* Match other tabs card width (no extra side padding here) */
+                            box-sizing: border-box;
+                        }
+                        
+                        .calendar-grid-container,
+                        .calendar-management-panel {
+                            order: 1;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            min-width: auto !important;
+                            flex: 0 0 auto !important;
+                        }
+                        
+                        .calendar-management-panel {
+                            order: 2;
+                            margin-top: 1.5rem;
+                        }
+                        
+                        .admin-calendar-card,
+                        #dateManagementPanel {
+                            width: 100%;
+                            box-sizing: border-box;
+                        }
+                    }
+                </style>
+            </div>
+
+            <!-- Price Tab -->
+            <div id="price" class="tab-content space-y-6">
+                <h2 class="text-xl font-bold mb-4">Gestión the Precios</h2>
+                <!-- Price Card -->
+                <div class="card mb-8" style="max-width: 400px;">
+                    <div class="card-header">
+                        <h3 class="card-title text-sm">Precio por persona</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold" for="priceInput">Precio ($)</label>
+                                <input type="number" id="priceInput" class="input w-full mt-4 mb-4" min="1" step="100" placeholder="5000">
+                            </div>
+                            <button id="savePriceBtn" class="btn btn-primary w-full">Guardar Precio</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alias Card -->
+                <div class="card" style="max-width: 400px;">
+                    <div class="card-header">
+                        <h3 class="card-title text-sm">Configuración de Alias</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-1" for="paymentAlias">Alias para Transferencia</label>
+                                <input type="text" id="paymentAlias" class="input w-full mt-4 mb-4" placeholder="ALIAS.DE.EJEMPLO">
+                            </div>
+                            <button id="saveAliasBtn" class="btn btn-primary w-full">Guardar Alias</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News Tab -->
+            <div id="news" class="tab-content">
+                <h2 class="text-xl font-bold mb-4">Gestión de Novedades</h2>
+                <div class="news-container">
+                    <!-- Form -->
+                    <div class="news-form">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title text-sm">Nueva Novedad</h3>
+                            </div>
+                            <div class="card-content flex flex-col gap-4">
+                                <input type="text" id="newsTitle" class="input" placeholder="Título">
+                                <textarea id="newsDesc" class="input" style="height: 100px;"
+                                    placeholder="Descripción"></textarea>
+                                <input type="text" id="newsImg" class="input" placeholder="URL de la imagen">
+                                <button id="addNewsBtn" class="btn btn-primary">Publicar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- List -->
+                    <div id="adminNewsList" class="news-list">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+                
+                <style>
+                    .news-container {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 2rem;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .news-container {
+                            grid-template-columns: 1fr;
+                        }
+                        
+                        .news-form {
+                            order: 1;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .news-list {
+                            order: 2;
+                        }
+                    }
+                </style>
+            </div>
+
+            <!-- Free Play Tables Tab -->
+            <div id="free-tables" class="tab-content">
+                <h2 class="text-xl font-bold mb-4">Mesas - Día de club</h2>
+                <div class="free-tables-container">
+                    <!-- Form -->
+                    <div class="free-tables-form">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title text-sm">Nueva mesa</h3>
+                            </div>
+                            <div class="card-content flex flex-col gap-4">
+                                <div>
+                                    <label class="text-sm font-bold" for="freeTableNumber">Número de mesa</label>
+                                    <input type="number" id="freeTableNumber" class="input" min="1" placeholder="Ej: 1">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-bold" for="freeTableGame">Juego</label>
+                                    <input type="text" id="freeTableGame" class="input" placeholder="Ej: Catan">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-bold" for="freeTableCapacity">Cupos</label>
+                                    <input type="number" id="freeTableCapacity" class="input" min="1" max="10" placeholder="Ej: 4">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-bold" for="freeTableDate">Fecha (opcional)</label>
+                                    <input type="date" id="freeTableDate" class="input">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-bold" for="freeTableTimeRange">Rango horario (opcional)</label>
+                                    <input type="text" id="freeTableTimeRange" class="input" placeholder="Ej: 17:00 - 19:00">
+                                </div>
+                                <button id="addFreeTableBtn" class="btn btn-primary">Agregar mesa</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- List -->
+                    <div id="adminFreeTablesList" class="free-tables-list">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+                
+                <style>
+                    .free-tables-container {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 2rem;
+                    }
+                    
+                    .free-tables-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .free-tables-container {
+                            grid-template-columns: 1fr;
+                        }
+                        
+                        .free-tables-form {
+                            order: 1;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .free-tables-list {
+                            order: 2;
+                        }
+                    }
+                </style>
+            </div>
+            
+            <style>
+                .news-container {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 2rem;
+                }
+                
+                .news-list .card {
+                    margin-bottom: 1rem;
+                }
+                
+                @media (max-width: 768px) {
+                    .news-container {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .news-form {
+                        order: 1;
+                        margin-bottom: 2rem;
+                    }
+                    
+                    .news-list {
+                        order: 2;
+                    }
+                    
+                    .news-list .card {
+                        margin-bottom: 1.25rem;
+                    }
+                }
+            </style>
+
+        </main>
+    </div>
+
+    <!-- Edit Reservation Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            <h2 class="text-xl font-bold mb-4">Editar Reserva</h2>
+            <form onsubmit="event.preventDefault(); saveEditReservation();" class="flex flex-col gap-4">
+                <div class="form-group">
+                    <label for="editDate">Fecha:</label>
+                    <input type="date" id="editDate" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTime">Hora:</label>
+                    <select id="editTime" class="input" required>
+                        <!-- Se llena dinámicamente -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editClient">Cliente:</label>
+                    <input type="text" id="editClient" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPhone">Teléfono:</label>
+                    <input type="tel" id="editPhone" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editGame">Juego:</label>
+                    <input type="text" id="editGame" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPeople">Personas:</label>
+                    <input type="number" id="editPeople" class="input" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Estado:</label>
+                    <select id="editStatus" class="input" required>
+                        <option value="pending">Pendiente de pago</option>
+                        <option value="confirmed">Confirmada</option>
+                        <option value="rejected">Rechazada</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Free Play Table Modal -->
+    <div class="modal-overlay" id="editFreeTableModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeEditFreeTableModal()">&times;</button>
+            <h2 class="text-xl font-bold mb-4">Editar mesa "Día de club"</h2>
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="text-sm font-bold" for="editFreeTableNumber">Número de mesa</label>
+                    <input type="number" id="editFreeTableNumber" class="input" min="1" placeholder="Ej: 1">
+                </div>
+                <div>
+                    <label class="text-sm font-bold" for="editFreeTableGame">Juego</label>
+                    <input type="text" id="editFreeTableGame" class="input" placeholder="Ej: Catan">
+                </div>
+                <div>
+                    <label class="text-sm font-bold" for="editFreeTableCapacity">Cupos</label>
+                    <input type="number" id="editFreeTableCapacity" class="input" min="1" max="10" placeholder="Ej: 4">
+                </div>
+                <div>
+                    <label class="text-sm font-bold" for="editFreeTableDate">Fecha (opcional)</label>
+                    <input type="date" id="editFreeTableDate" class="input">
+                </div>
+                <div>
+                    <label class="text-sm font-bold" for="editFreeTableTimeRange">Rango horario (opcional)</label>
+                    <input type="text" id="editFreeTableTimeRange" class="input" placeholder="Ej: 17:00 - 19:00">
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button class="btn btn-primary flex-1" onclick="saveEditFreeTable()">Guardar cambios</button>
+                    <button class="btn btn-outline flex-1" onclick="closeEditFreeTableModal()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/admin.js"></script>
+
+    <script>
+        // Función para alternar el menú móvil
+        function toggleMenu() {
+            document.body.classList.toggle('mobile-menu-open');
+            
+            // Cerrar el menú al hacer clic en un ítem del menú (solo en móviles)
+            if (window.innerWidth <= 768) {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        document.body.classList.remove('mobile-menu-open');
+                    });
+                });
+            }
+        }
+
+        // Cerrar menú al hacer clic en el overlay
+        function closeMenu() {
+            document.body.classList.remove('mobile-menu-open');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', toggleMenu);
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', closeMenu);
+            }
+            
+            // Cerrar menú al cambiar el tamaño de la ventana si se vuelve a escritorio
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    document.body.classList.remove('mobile-menu-open');
+                }
+            });
+            
+            // Cerrar menú al hacer clic en un ítem del menú (solo en móviles)
+            if (window.innerWidth <= 768) {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        closeMenu();
+                    });
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Reservas</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #427AA1 0%, #2c5f7f 100%);
+            padding: 1.5rem; /* Aumentado de 1rem a 1.5rem para mejor margen en mobile */
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--foreground);
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="card login-card">
+            <div class="login-header">
+                <h1 class="login-title">Panel de Administración</h1>
+                <p class="login-subtitle">Ingresá con tu cuenta de administrador</p>
+            </div>
+
+            <div class="card-content">
+                <form id="adminLoginForm" class="flex flex-col gap-4">
+                    <div class="form-group">
+                        <label for="adminEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="adminEmail" 
+                            class="input w-full" 
+                            placeholder="admin@resistencia.com"
+                            required
+                            autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminPassword">Contraseña</label>
+                        <input 
+                            type="password" 
+                            id="adminPassword" 
+                            class="input w-full" 
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="btn btn-primary w-full" style="height: 3rem; font-size: 1rem;">
+                        Iniciar sesión
+                    </button>
+
+                    <p id="errorMessage" class="error-message"></p>
+                </form>
+
+                <a href="index.html" class="text-sm text-center text-muted" style="text-decoration: none; display: block; margin-top: 1rem;">
+                    ← Volver al inicio
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import FirebaseService from './js/firebase-service.js';
+        
+        // NOTA: Antes de usar este login, debes crear el usuario admin en Firebase Console:
+        // 1. Ir a Firebase Console > Authentication > Users
+        // 2. Click en "Add user"
+        // 3. Email: admin@resistencia.com
+        // 4. Password: resistencia2025
+        // 5. Guardar
+
+        const form = document.getElementById('adminLoginForm');
+        const emailInput = document.getElementById('adminEmail');
+        const passwordInput = document.getElementById('adminPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Verificar si ya está logueado y es admin
+        FirebaseService.onAuthChange(async (user) => {
+            if (user) {
+                const isAdmin = await FirebaseService.checkIfAdmin(user.email);
+                if (isAdmin) {
+                    window.location.href = 'admin.html';
+                }
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showError('Por favor completá todos los campos');
+                return;
+            }
+
+            try {
+                loginBtn.textContent = 'Verificando...';
+                loginBtn.disabled = true;
+                errorMessage.classList.remove('visible');
+
+                const user = await FirebaseService.loginWithEmailAndPassword(email, password);
+                
+                // Verificar si es admin
+                const isAdmin = await FirebaseService.checkIfAdmin(user.email);
+                
+                if (isAdmin) {
+                    window.location.href = 'admin.html';
+                } else {
+                    showError('No tenés permisos de administrador');
+                    await FirebaseService.logout();
+                }
+            } catch (error) {
+                console.error('Error al iniciar sesión:', error);
+                
+                let errorMsg = 'Error al iniciar sesión. Verificá tus credenciales.';
+                
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMsg = 'Email o contraseña incorrectos';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMsg = 'Email inválido';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMsg = 'Demasiados intentos. Intentá más tarde';
+                }
+                
+                showError(errorMsg);
+            } finally {
+                loginBtn.textContent = 'Iniciar sesión';
+                loginBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+        }
+    </script>
+</body>
+
+</html>

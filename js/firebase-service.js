@@ -128,6 +128,8 @@ const FirebaseService = {
       const docRef = await addDoc(collection(db, 'reservations'), {
         ...reservation,
         date: reservation.date, // Ya es string "YYYY-MM-DD"
+        pricePerPerson: reservation.pricePerPerson, // NUEVO: precio histórico
+        total: reservation.total, // Total ya calculado
         createdAt: Timestamp.now(),
         status: reservation.status || 'pending_payment'
       });

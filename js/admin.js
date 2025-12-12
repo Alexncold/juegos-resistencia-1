@@ -112,8 +112,6 @@ async function initializeAdminPanel() {
         const endDate = searchDateEnd.value;
         const statusFilter = searchStatus.value;
 
-        const pricePerPerson = await FirebaseService.getPrice();
-
         const filtered = reservations.filter(r => {
             const matchesText = r.userName.toLowerCase().includes(filter) ||
                 r.game.toLowerCase().includes(filter);
@@ -208,7 +206,9 @@ async function initializeAdminPanel() {
                     statusLabel = 'Rechazada';
                 }
 
-                const totalAmount = (r.people || 0) * pricePerPerson;
+                // CORREGIDO: Usar el precio histórico guardado en la reserva
+                const historicalPrice = r.pricePerPerson || (r.total / (r.people || 1));
+                const totalAmount = r.total || ((r.people || 0) * historicalPrice);
                 const isChecked = selectedReservations.has(r.id);
                 const occupancy = `${r.people || 0}/4`;
 
@@ -239,8 +239,9 @@ async function initializeAdminPanel() {
 
         if (reservationsTotalAmountEl) {
             const totalRevenue = filtered.reduce((sum, r) => {
-                const people = r.people || 0;
-                return sum + (people * pricePerPerson);
+                // CORREGIDO: Usar el total histórico guardado en cada reserva
+                const reservationTotal = r.total || ((r.people || 0) * (r.pricePerPerson || 5000));
+                return sum + reservationTotal;
             }, 0);
 
             reservationsTotalAmountEl.textContent = `$${totalRevenue.toLocaleString('es-AR')}`;

@@ -479,6 +479,7 @@ async function initializeApp(user) {
                 time: state.selectedTime,
                 people: state.people,
                 game: gameName,
+                pricePerPerson: state.price, // NUEVO: Guardar precio histórico
                 total: total,
                 status: 'pending_payment'
             };
